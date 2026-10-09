@@ -1,6 +1,6 @@
 PROPRIETARY LICENSE - ALL RIGHTS RESERVED
 
-Copyright (c) 2026 [YOUR NAME]. All rights reserved.
+Copyright (c) 2026 G P Revanth Raj. All rights reserved.
 
 Project: Automated Student Performance Analysis and Mark Sheet Generation System
 
@@ -38,4 +38,4 @@ Project: Automated Student Performance Analysis and Mark Sheet Generation System
    Any use beyond what is stated in Section 3 without written permission is a
    violation of this license and of applicable copyright law.
 
-For permission requests, contact: [YOUR EMAIL]
+For permission requests, contact: ray007herowars@gmail.com
