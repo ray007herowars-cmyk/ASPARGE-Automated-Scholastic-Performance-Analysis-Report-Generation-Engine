@@ -2,7 +2,7 @@
 
 A browser-based tool that lets faculty enter cycle test marks and instantly get the converted marks, a class performance summary, a mark-distribution chart, and a **fully filled Excel mark statement** in the institution's official template.
 
-**Live demo:** `<add your hosted link here>`
+**Live demo:** `https://asparge.vercel.app/index.html`
 
 > **License:** All rights reserved. This project may not be copied, reused, modified or redistributed. See [LICENSE](LICENSE).
 
@@ -87,5 +87,5 @@ LICENSE                  Proprietary license (all rights reserved)
 
 ## Author
 
-[YOUR NAME], [DEPARTMENT], [COLLEGE NAME]
-Project mentor: [MENTOR NAME]
+G P Revanth Raj, CSE, SRMIST Vadapalani
+Project mentor: Dr. P. Durgadevi
