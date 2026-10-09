@@ -68,6 +68,8 @@ After loading, a message shows how many students were loaded. The template holds
 
 Loading a new roster replaces the old one on the screen.
 
+**Building a roster from an Excel sheet (Roster Builder page).** Click **Roster Builder** in the top menu, upload the faculty's `.xlsx` or CSV, and the page keeps only valid register numbers (`RA` followed by 13 digits). Each sheet becomes its own class list. Choose the Year, Department and Section, then download the CSV (or all of them as a ZIP). Use the CSV in the roster step above. Duplicates are removed, and entries that look like register numbers but have the wrong length are listed so you can fix them. Old `.xls` files must be re-saved as `.xlsx`.
+
 ### Step 3: Fill in the test details
 
 | Field | How to fill it | Where it appears in the Excel file |

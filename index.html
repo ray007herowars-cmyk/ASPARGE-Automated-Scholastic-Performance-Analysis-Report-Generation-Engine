@@ -56,10 +56,15 @@
   .status.err{color:var(--bad);} .status.ok2{color:var(--ok);}
   footer{color:var(--ink-soft);font-size:.76rem;text-align:center;margin-top:8px;}
   @media (max-width:480px){ .wrap{padding:16px 10px 40px;} .card{padding:14px;} }
+  .topnav{display:flex;gap:4px;margin:0 0 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .topnav a{padding:8px 14px;text-decoration:none;color:var(--ink-soft);font-weight:600;font-size:.86rem;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .topnav a.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .topnav a:hover{color:var(--accent)}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <nav class="topnav"><a href="index.html" class="active" aria-current="page">Mark Sheet Generator</a><a href="roster.html">Roster Builder</a></nav>
   <h1>Automated Student Performance Analysis and <span>Mark Sheet Generation System</span></h1>
   <p class="sub">Set up once, then just enter marks — this fills your official Cycle Test mark-statement template and computes the summary automatically.</p>
 
@@ -78,7 +83,7 @@
     <h2>2 · Class roster</h2>
     <div class="row-tools">
       <label style="flex:0 0 auto;"><input type="file" id="f_roster" accept=".csv" style="display:inline-block;width:auto;"></label>
-      <span class="hint">CSV with a <code>RegisterNumber</code> column (up to 64 students).</span>
+      <span class="hint">CSV with a <code>RegisterNumber</code> column (up to 64 students). Need one? Build it from the faculty's Excel sheet in the <a href="roster.html" style="color:var(--accent)">Roster Builder</a>.</span>
     </div>
     <details>
       <summary>Or paste register numbers, one per line</summary>

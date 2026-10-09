@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Register Number Roster Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{--ink:#132038;--soft:#4b5872;--line:#dfe3ea;--bg:#f4f6f9;--panel:#fff;--accent:#8a1f2d;--accent-soft:#f4e4e2;--ok:#2f6b45;--bad:#a13327;--warn:#8a5a12;
+    padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#eef1f6;--soft:#aab3c5;--line:#2a3245;--bg:#0f1420;--panel:#161d2c;--accent:#e0768a;--accent-soft:#2a1c22;--ok:#7fd39a;--bad:#ef9088;--warn:#e3bd77;}}
+  :root[data-theme="dark"]{--ink:#eef1f6;--soft:#aab3c5;--line:#2a3245;--bg:#0f1420;--panel:#161d2c;--accent:#e0768a;--accent-soft:#2a1c22;--ok:#7fd39a;--bad:#ef9088;--warn:#e3bd77;}
+  *{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',Tahoma,Arial,sans-serif;line-height:1.4}
+  .wrap{max-width:900px;margin:0 auto;padding:24px 16px 60px}
+  h1{font-size:1.35rem;margin:0 0 2px}h1 span{color:var(--accent)}
+  .sub{color:var(--soft);font-size:.86rem;margin:0 0 18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+  .drop{border:2px dashed var(--line);border-radius:10px;padding:22px;text-align:center;color:var(--soft)}
+  .drop.over{border-color:var(--accent);background:var(--accent-soft)}
+  input[type=file]{margin-top:8px}
+  select{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:.85rem}
+  button{cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 13px;border-radius:6px;font-size:.83rem;font-weight:600}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+  .title{font-weight:700;font-size:.95rem;word-break:break-word}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .chip{font-size:.75rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line);background:var(--bg)}
+  .chip.ok{color:var(--ok)}.chip.bad{color:var(--bad)}.chip.warn{color:var(--warn)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .fname{font-size:.78rem;color:var(--soft)}
+  details{margin-top:8px;font-size:.8rem}summary{cursor:pointer;color:var(--accent);font-weight:600}
+  .list{font-family:ui-monospace,Consolas,monospace;font-size:.76rem;max-height:120px;overflow:auto;margin-top:6px;color:var(--soft)}
+  .note{font-size:.78rem;color:var(--soft)}.err{color:var(--bad)}
+  footer{color:var(--soft);font-size:.75rem;text-align:center;margin-top:10px}
+  .topnav{display:flex;gap:4px;margin:0 0 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .topnav a{padding:8px 14px;text-decoration:none;color:var(--soft);font-weight:600;font-size:.86rem;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .topnav a.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .topnav a:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav"><a href="index.html">Mark Sheet Generator</a><a href="roster.html" class="active" aria-current="page">Roster Builder</a></nav>
+  <h1>Register Number <span>Roster Builder</span></h1>
+  <p class="sub">Upload the Excel sheet the faculty provides. Only valid register numbers (<b>RA</b> + 13 digits) are kept, and you get a clean roster CSV for the mark sheet app.</p>
+
+  <div class="card">
+    <div class="drop" id="drop">
+      Drop .xlsx or .csv files here
+      <div><input type="file" id="file" accept=".xlsx,.csv,.txt" multiple></div>
+    </div>
+    <p class="note" id="msg">Every sheet in a workbook becomes its own class list. Names, headings and serial numbers are ignored automatically. Old .xls files must be re-saved as .xlsx or CSV.</p>
+  </div>
+
+  <div id="groups"></div>
+
+  <div class="card" id="bulk" style="display:none">
+    <div class="row" style="margin-top:0">
+      <button class="primary" id="zipBtn">Download selected as ZIP</button>
+      <span class="note" id="bulkNote"></span>
+    </div>
+  </div>
+  <footer>Runs in your browser. Files are never uploaded anywhere.</footer>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const RE=/^RA\d{13}$/;
+  const DEPTS=['CSE','CSE-ETECH','MECH','ECE'], YEARS=['I','II','III','IV'], SECS=['A','B','C'];
+  let groups=[], nid=1;
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  function classify(cells){
+    const seen=new Set(), regs=[], near=[]; let dups=0;
+    cells.forEach(raw=>{
+      const norm=String(raw).replace(/\s+/g,'').toUpperCase();
+      if(RE.test(norm)){ if(seen.has(norm)) dups++; else { seen.add(norm); regs.push(norm); } }
+      else if(/^RA\d/.test(norm)) near.push(String(raw).trim());
+    });
+    return {regs,near,dups};
+  }
+  function addGroup(label,cells){
+    const r=classify(cells);
+    groups.push({id:nid++,label,regs:r.regs,near:r.near,dups:r.dups,include:r.regs.length>0,year:'',dept:'',sec:''});
+  }
+
+  async function parseXlsx(file){
+    const zip=await JSZip.loadAsync(file), dp=new DOMParser();
+    const get=async p=>{const f=zip.file(p);return f?dp.parseFromString(await f.async('string'),'application/xml'):null;};
+    const ss=await get('xl/sharedStrings.xml');
+    const strings=ss?[...ss.getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(t=>t.textContent).join('')):[];
+    const wb=await get('xl/workbook.xml'), rels=await get('xl/_rels/workbook.xml.rels');
+    if(!wb||!rels) throw new Error('Not a valid .xlsx file');
+    const relMap={}; [...rels.getElementsByTagName('Relationship')].forEach(r=>relMap[r.getAttribute('Id')]=r.getAttribute('Target'));
+    const RNS='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    for(const sh of [...wb.getElementsByTagName('sheet')]){
+      const rid=sh.getAttributeNS(RNS,'id')||sh.getAttribute('r:id');
+      let target=relMap[rid]; if(!target) continue;
+      target=target.startsWith('/')?target.slice(1):'xl/'+target.replace(/^\.\//,'');
+      const doc=await get(target); if(!doc) continue;
+      const cells=[];
+      [...doc.getElementsByTagName('c')].forEach(c=>{
+        const t=c.getAttribute('t'), v=c.getElementsByTagName('v')[0];
+        if(t==='s'&&v) cells.push(strings[+v.textContent]||'');
+        else if(t==='inlineStr') cells.push([...c.getElementsByTagName('t')].map(x=>x.textContent).join(''));
+        else if(t==='str'&&v) cells.push(v.textContent);
+      });
+      addGroup(file.name+' · '+sh.getAttribute('name'),cells);
+    }
+  }
+  async function parseText(file){
+    const text=await file.text();
+    addGroup(file.name, text.split(/\r?\n/).flatMap(l=>l.split(/[,\t;]/)).map(c=>c.replace(/^"|"$/g,'').trim()));
+  }
+  async function handleFiles(files){
+    const msg=$('msg'); msg.className='note'; msg.textContent='Reading…';
+    let bad=[];
+    for(const f of files){
+      try{
+        if(/\.xlsx$/i.test(f.name)) await parseXlsx(f);
+        else if(/\.(csv|txt)$/i.test(f.name)) await parseText(f);
+        else bad.push(f.name+' (unsupported type)');
+      }catch(e){ bad.push(f.name+' ('+e.message+')'); }
+    }
+    msg.className=bad.length?'note err':'note';
+    msg.textContent=bad.length?'Could not read: '+bad.join(', '):'Done. Choose the class for each list below, then download.';
+    render();
+  }
+
+  function fname(g){
+    const base=(g.year&&g.dept&&g.sec)?`${g.year}_${g.dept}_${g.sec}`:g.label.replace(/\.[^.\s]+(\s|$)/,'$1').replace(/[^\w-]+/g,'_').replace(/^_+|_+$/g,'');
+    return base+'.csv';
+  }
+  function csvOf(g){ return 'RegisterNumber\n'+g.regs.join('\n')+'\n'; }
+  const opts=(arr,v)=>'<option value="">—</option>'+arr.map(a=>`<option${a===v?' selected':''}>${a}</option>`).join('');
+
+  function render(){
+    $('groups').innerHTML=groups.map(g=>`
+      <div class="card" data-id="${g.id}">
+        <div class="head"><span class="title">${esc(g.label)}</span>
+          <label class="note"><input type="checkbox" data-k="include" ${g.include?'checked':''}> include in ZIP</label></div>
+        <div class="chips">
+          <span class="chip ${g.regs.length?'ok':'bad'}">${g.regs.length} valid</span>
+          ${g.dups?`<span class="chip warn">${g.dups} duplicate${g.dups>1?'s':''} removed</span>`:''}
+          ${g.near.length?`<span class="chip bad">${g.near.length} look like register numbers but are invalid</span>`:''}
+          ${g.regs.length>64?'<span class="chip warn">over 64 — the mark sheet app uses only the first 64</span>':''}
+        </div>
+        <div class="row">
+          <select data-k="year">${opts(YEARS,g.year)}</select>
+          <select data-k="dept">${opts(DEPTS,g.dept)}</select>
+          <select data-k="sec">${opts(SECS,g.sec)}</select>
+          <span class="fname">→ ${esc(fname(g))}</span>
+          <button data-act="dl" ${g.regs.length?'':'disabled'}>Download CSV</button>
+          <button data-act="rm">Remove</button>
+        </div>
+        ${g.near.length?`<details><summary>Check these entries</summary><div class="list">${g.near.slice(0,100).map(esc).join('<br>')}</div></details>`:''}
+        ${g.regs.length?`<details><summary>Preview register numbers</summary><div class="list">${g.regs.slice(0,200).join('<br>')}</div></details>`:''}
+      </div>`).join('');
+    $('bulk').style.display=groups.length?'block':'none';
+    const sel=groups.filter(g=>g.include&&g.regs.length);
+    $('zipBtn').disabled=!sel.length;
+    $('bulkNote').textContent=sel.length+' list(s) selected, '+sel.reduce((a,g)=>a+g.regs.length,0)+' register numbers';
+  }
+
+  async function save(filename,blob){
+    const d=(window.claude&&window.claude.use)?await window.claude.use('downloads'):null;
+    if(d){ try{ await d.save({filename,data:blob}); }catch(e){} return; }
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }
+
+  $('groups').addEventListener('change',e=>{
+    const card=e.target.closest('.card'); if(!card) return;
+    const g=groups.find(x=>x.id==card.dataset.id), k=e.target.dataset.k; if(!g||!k) return;
+    g[k]=k==='include'?e.target.checked:e.target.value; render();
+  });
+  $('groups').addEventListener('click',async e=>{
+    const act=e.target.dataset.act; if(!act) return;
+    const g=groups.find(x=>x.id==e.target.closest('.card').dataset.id);
+    if(act==='rm'){ groups=groups.filter(x=>x!==g); render(); }
+    if(act==='dl') await save(fname(g),new Blob([csvOf(g)],{type:'text/csv'}));
+  });
+  $('zipBtn').addEventListener('click',async()=>{
+    const zip=new JSZip(), used={};
+    groups.filter(g=>g.include&&g.regs.length).forEach(g=>{
+      let n=fname(g); if(used[n]){ n=n.replace(/\.csv$/,'_'+(++used[n])+'.csv'); } else used[n]=1;
+      zip.file(n,csvOf(g));
+    });
+    await save('rosters.zip',await zip.generateAsync({type:'blob'}));
+  });
+  $('file').addEventListener('change',e=>{ if(e.target.files.length) handleFiles([...e.target.files]); e.target.value=''; });
+  const drop=$('drop');
+  ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+  drop.addEventListener('drop',e=>{ if(e.dataTransfer.files.length) handleFiles([...e.dataTransfer.files]); });
+})();
+</script>
+</body>
+</html>
