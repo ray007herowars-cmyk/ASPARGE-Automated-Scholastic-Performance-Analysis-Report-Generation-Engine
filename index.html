@@ -289,10 +289,43 @@
     });
     tb.querySelectorAll('input').forEach(inp=>{
       inp.addEventListener('input', e=>{
-        const reg=e.target.dataset.reg, field=e.target.dataset.f;
-        if(!marksData[reg]) marksData[reg]={att:100,mark:''};
-        marksData[reg][field] = field==='mark' ? parseMarkInput(e.target.value) : e.target.value;
-        renderConvertedOnly(); renderSummaryAndChart(); persistAll();
+        const reg = e.target.dataset.reg, field = e.target.dataset.f;
+        if(!marksData[reg]) marksData[reg] = {att: 100, mark: ''};
+
+        if (field === 'mark') {
+          const rawVal = e.target.value.trim();
+          if (/^ab$/i.test(rawVal) || /^mp$/i.test(rawVal)) {
+            marksData[reg].mark = rawVal.toUpperCase();
+          } else if (rawVal === '') {
+            marksData[reg].mark = '';
+          } else {
+            let n = parseFloat(rawVal);
+            if (!isNaN(n)) {
+              const max = parseFloat($('sel_maxmarks').value) || 25;
+              // Clamp values between 0 and max marks
+              if (n > max) {
+                n = max;
+                e.target.value = max;
+              } else if (n < 0) {
+                n = 0;
+                e.target.value = 0;
+              }
+              marksData[reg].mark = n;
+            } else {
+              marksData[reg].mark = '';
+            }
+          }
+        } else if (field === 'att') {
+          let attVal = parseFloat(e.target.value);
+          if (!isNaN(attVal)) {
+            if (attVal > 100) { attVal = 100; e.target.value = 100; }
+            if (attVal < 0) { attVal = 0; e.target.value = 0; }
+          }
+          marksData[reg].att = e.target.value;
+        }
+        renderConvertedOnly(); 
+        renderSummaryAndChart(); 
+        persistAll();
       });
     });
   }
